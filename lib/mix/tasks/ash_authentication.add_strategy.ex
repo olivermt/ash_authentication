@@ -427,6 +427,7 @@ if Code.ensure_loaded?(Igniter) do
           end
 
           defp body(params) do
+            # TODO: Set to your magic link acceptance URL.
             url = url(~p"/auth/user/magic_link/?token=\#{params[:token]}")
 
             """

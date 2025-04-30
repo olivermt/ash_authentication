@@ -5,10 +5,11 @@ defmodule AshAuthentication.Strategy.MagicLink.Transformer do
 
   alias Ash.Resource
   alias AshAuthentication.Strategy.MagicLink
-  alias Spark.{Dsl.Transformer, Error.DslError}
+  alias Spark.Dsl.Transformer
   import AshAuthentication.Utils
   import AshAuthentication.Validations
   import AshAuthentication.Strategy.Custom.Helpers
+  require Logger
 
   @doc false
   @spec transform(MagicLink.t(), dsl_state) :: {:ok, MagicLink.t() | dsl_state} | {:error, any}
@@ -177,20 +178,20 @@ defmodule AshAuthentication.Strategy.MagicLink.Transformer do
 
   defp warn_on_require_interaction(strategy) do
     bypassing_error? =
-      :ash_authentication_phoenix
+      :ash_authentication
       |> Application.get_env(:bypass_require_interaction_for_magic_link?, false)
 
     if bypassing_error? do
       :ok
     else
-      {:error,
-       DslError.exception(
-         path: [:authentication, :strategies, :magic_link],
-         message: """
-         `require_interaction?` must be set to true on the #{inspect(strategy.name)} magic link strategy for #{inspect(strategy.resource)}.
-         Without it, magic links use a `GET` endpoint for signing in.  Some email clients and security tools (e.g., Outlook, virus scanners, and email previewers) may automatically follow these links, unintentionally consuming the sign in token making it unavailable to the end user.
-         """
-       )}
+      Logger.warning(fn ->
+        """
+        `require_interaction?` must be set to true on the #{inspect(strategy.name)} magic link strategy for #{inspect(strategy.resource)}.
+        Without it, magic links use a `GET` endpoint for signing in.  Some email clients and security tools (e.g., Outlook, virus scanners, and email previewers) may automatically follow these links, unintentionally consuming the sign in token making it unavailable to the end user.
+
+        If you would like to keep the old behaviour and remove this warning then you can do so by setting `config :ash_authentication. :bypass_require_interaction_for_magic_link?, true` in your configuration.
+        """
+      end)
     end
   end
 end
