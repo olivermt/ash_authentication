@@ -5,7 +5,7 @@ defmodule AshAuthentication.Strategy.MagicLink.Transformer do
 
   alias Ash.Resource
   alias AshAuthentication.Strategy.MagicLink
-  alias Spark.Dsl.Transformer
+  alias Spark.{Dsl.Transformer, Error.DslError}
   import AshAuthentication.Utils
   import AshAuthentication.Validations
   import AshAuthentication.Strategy.Custom.Helpers
@@ -34,7 +34,8 @@ defmodule AshAuthentication.Strategy.MagicLink.Transformer do
              dsl_state,
              strategy.request_action_name,
              &build_request_action(&1, strategy)
-           ) do
+           ),
+         :ok <- warn_on_require_interaction(strategy) do
       dsl_state =
         dsl_state
         |> then(
@@ -170,5 +171,26 @@ defmodule AshAuthentication.Strategy.MagicLink.Transformer do
       arguments: arguments,
       preparations: preparations
     )
+  end
+
+  defp warn_on_require_interaction(strategy) when strategy.require_interaction?, do: :ok
+
+  defp warn_on_require_interaction(strategy) do
+    bypassing_error? =
+      :ash_authentication_phoenix
+      |> Application.get_env(:bypass_require_interaction_for_magic_link?, false)
+
+    if bypassing_error? do
+      :ok
+    else
+      {:error,
+       DslError.exception(
+         path: [:authentication, :strategies, :magic_link],
+         message: """
+         `require_interaction?` must be set to true on the #{inspect(strategy.name)} magic link strategy for #{inspect(strategy.resource)}.
+         Without it, magic links use a `GET` endpoint for signing in.  Some email clients and security tools (e.g., Outlook, virus scanners, and email previewers) may automatically follow these links, unintentionally consuming the sign in token making it unavailable to the end user.
+         """
+       )}
+    end
   end
 end

@@ -19,6 +19,7 @@ defimpl AshAuthentication.Strategy, for: AshAuthentication.Strategy.MagicLink do
   @doc false
   @spec method_for_phase(MagicLink.t(), atom) :: Strategy.http_method()
   def method_for_phase(_strategy, :request), do: :post
+  def method_for_phase(strategy, :sign_in) when strategy.require_interaction?, do: :post
   def method_for_phase(_strategy, :sign_in), do: :get
 
   @doc false

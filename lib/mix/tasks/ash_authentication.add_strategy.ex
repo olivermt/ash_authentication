@@ -169,6 +169,7 @@ if Code.ensure_loaded?(Igniter) do
       magic_link do
         identity_field :#{options[:identity_field]}
         registration_enabled? true
+        require_interaction? true
 
         sender #{inspect(sender)}
       end
